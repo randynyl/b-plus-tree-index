@@ -27,6 +27,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {
 	/* std::cout << "Hello world!" << std::endl; */
+	/*
 
 	std::cout << "Program begins: " << std::endl;
 	 std::ifstream data ("./data.tsv");
@@ -40,6 +41,7 @@ int main(int argc, char *argv[])
 		}
 		cout << endl;
    }
+   */
 }
 
 
@@ -237,5 +239,45 @@ void BPTree::insertInternal(int x, Node *cursor, Node *child) {
       insertInternal(cursor->key[cursor->size], findParent(root, cursor), newInternal);
     }
   }
+}
+
+
+// Find the parent
+Node *BPTree::findParent(Node *cursor, Node *child) {
+  Node *parent;
+  if (cursor->IS_LEAF || (cursor->ptr[0])->IS_LEAF) {
+    return NULL;
+  }
+  for (int i = 0; i < cursor->size + 1; i++) {
+    if (cursor->ptr[i] == child) {
+      parent = cursor;
+      return parent;
+    } else {
+      parent = findParent(cursor->ptr[i], child);
+      if (parent != NULL)
+        return parent;
+    }
+  }
+  return parent;
+}
+
+// Print the tree
+void BPTree::display(Node *cursor) {
+  if (cursor != NULL) {
+    for (int i = 0; i < cursor->size; i++) {
+      cout << cursor->key[i] << " ";
+    }
+    cout << "\n";
+    if (cursor->IS_LEAF != true) {
+      for (int i = 0; i < cursor->size + 1; i++) {
+        display(cursor->ptr[i]);
+      }
+    }
+  }
+}
+
+// Get the root
+Node *BPTree::getRoot() {
+  return root;
 }
 
