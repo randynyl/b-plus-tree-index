@@ -4,10 +4,7 @@
         {
             "label": "build",
             "type": "shell",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "group": "build",
             "windows": {
                 "command": "powershell",
                 "args": [
@@ -28,7 +25,8 @@
                     "-c",
                     "make"
                 ]
-            }
+            },
+            "problemMatcher": []
         },
         {
             "label": "build & run",
@@ -97,6 +95,28 @@
                 "$gcc"
             ],
             "group": "test",
+            "detail": "compiler: \"C:\\Program Files (x86)\\mingw-w64\\i686-8.1.0-posix-dwarf-rt_v6-rev0\\mingw32\\bin\\g++.exe\""
+        },
+        {
+            "type": "cppbuild",
+            "label": "C/C++: g++.exe build active file",
+            "command": "C:\\Program Files (x86)\\mingw-w64\\i686-8.1.0-posix-dwarf-rt_v6-rev0\\mingw32\\bin\\g++.exe",
+            "args": [
+                "-g",
+                "${file}",
+                "-o",
+                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "detail": "compiler: \"C:\\Program Files (x86)\\mingw-w64\\i686-8.1.0-posix-dwarf-rt_v6-rev0\\mingw32\\bin\\g++.exe\""
         }
     ]
