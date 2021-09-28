@@ -4,9 +4,11 @@
 #include <vector>
 #include <iterator>
 #include <sstream>
+#include <typeinfo>
 
 using namespace std;
 
+int BLOCK_SIZE = 100;
 std::vector<std::string> split(const std::string &line, char delimiter) {
     std::stringstream ss;
     ss.str(line);
@@ -20,70 +22,91 @@ std::vector<std::string> split(const std::string &line, char delimiter) {
 
 class Record {
 	private:
-		string tconst;
-		// float takes up less space but default is double
-		double averageRating;
-		int numVotes;
+        // record length as part of record header
+        int recordLength;
+        string tconst;
+        float averageRating;
+        int numVotes;
 	public:
-		Record(string tconst, double averageRating, int numVotes) {
+		Record(string tconst, float averageRating, int numVotes) {
 			this->tconst = tconst;
 			this->averageRating = averageRating;
 			this->numVotes = numVotes;
-		}
+            this->recordLength = tconst.size() + sizeof(averageRating) + sizeof(numVotes) + sizeof(int);
+        }
+        int getRecordLength() {
+            return recordLength;
+        }
+        string getTconst() {
+            return tconst;
+        }
 };
 
 class Block {
 	private:
-		vector<Record> records;
+        // blockId as part of block header
+        int blockId;
+        int recordLength;
+        // records within a block are simulated to be physically contiguous.
+        // records need not be sequenced in order since we're using a b+ tree index.
+        vector<Record> records;
 	public:
 		Block() {
 			cout << "New Block created" << endl; 
 		}
 		void* operator new(size_t size) {
-			std::cout << "Overloading new operator with size: 100 instead of size: " << size << std::endl;
-			void* p = ::operator new(100);
+			std::cout << "Creating new block with allocated memory of size: " << BLOCK_SIZE <<  " bytes" << endl;
+			void* p = ::operator new(BLOCK_SIZE);
 			return p;
 		}
 		void addRecord(Record record) {
+        if (records.size() == 0) {
+            recordLength = record.getRecordLength();
+        }
 			records.push_back(record);
 		}
+        int getSize() {
+            return sizeof(blockId) + sizeof(recordLength) + (recordLength * records.size());
+        }
+        vector<Record> getRecords() {
+            return records;
+        }
 
 };
 
 int main(int argc, char *argv[])
 {
-	std::cout << "Program begins: " << std::endl;
-	// std::ifstream data ("./data.tsv");
-
-	/* adds the data from the csv into a string vector delimited by '\t'
-	std::string line;
+	cout << "Program begins: " << std::endl;
+    vector<Block> storage;
+    Block* newBlockPtr = new Block();
+    storage.push_back(*newBlockPtr);
+    // begin reading tsv file and storing into blocks
+	ifstream data ("./data.tsv");
+	string line;
 	while (std::getline(data, line)) {
 		vector<string> row_values;
 		row_values = split(line, '\t');
-		for (auto v: row_values) {
-			cout << v << ',';
-		}
-		cout << endl;
-	}
-	*/
+        try {
+            string tconst = row_values[0];
+            float averageRating = stof(row_values[1]);
+            int numVotes = stoi(row_values[2]);
+            Record newRecord = Record(tconst, averageRating, numVotes);
+            if (storage.back().getSize() + newRecord.getRecordLength() > BLOCK_SIZE) {
+                Block newBlock;
+                // newBlockPtr = &(newBlock);
+                storage.push_back(newBlock);
+            }
+            storage.back().addRecord(newRecord);
+            // cout << "Record: " << storage.back().getRecords().back().getTconst() << " added!" << endl;
+        } catch (...) {
+            continue;
+        }
 
-	/* To find out: 
-	1) why size of block does not increase after adding new records\
-	2) how to check when block has exceeded its 100B capacity to start new block
-	*/
-	Block* blockPtr = new Block();
-	cout << sizeof(*blockPtr) << endl;
-	Record record1 = Record("id", 5.0, 500);
-	blockPtr->addRecord(record1);
-	cout << sizeof(*blockPtr) << endl;
-	blockPtr->addRecord(record1);
-	blockPtr->addRecord(record1);
-	blockPtr->addRecord(record1);
-	blockPtr->addRecord(record1);
-	blockPtr->addRecord(record1);
-	blockPtr->addRecord(record1);
-	cout << sizeof(*blockPtr) << endl;
-	delete blockPtr;
+	}
+    cout << "Number of blocks: " << storage.size() << endl;
+    cout << "Size of database: " << storage.size() * BLOCK_SIZE << endl;
+
+	// delete blockPtr;
 }
 
 
