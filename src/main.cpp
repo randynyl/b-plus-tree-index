@@ -9,6 +9,7 @@
 using namespace std;
 
 int BLOCK_SIZE = 100;
+int NODE_N = 12;
 std::vector<std::string> split(const std::string &line, char delimiter) {
     std::stringstream ss;
     ss.str(line);
@@ -72,6 +73,22 @@ class Block {
 
 };
 
+class Node {
+    int* keyArr;
+    Node** pointerArr;
+    bool isLeafNode;
+
+    Node() {
+        keyArr = new int[NODE_N];
+        pointerArr = new Node*[NODE_N+1];
+        isLeafNode = true;
+    }
+}
+
+class BPlusTree {
+    Node* rootNode;
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -104,7 +121,7 @@ int main(int argc, char *argv[])
     cout << "Number of blocks: " << storage.size() << endl;
     cout << "Size of database: " << storage.size() * BLOCK_SIZE << endl;
 
-	// delete blockPtr;
+	delete newBlockPtr;
 }
 
 
