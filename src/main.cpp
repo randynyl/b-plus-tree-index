@@ -51,11 +51,9 @@ class Block {
         // records need not be sequenced in order since we're using a b+ tree index.
         vector<Record> records;
 	public:
-		Block() {
-			cout << "New Block created" << endl; 
-		}
+		Block() {}
 		void* operator new(size_t size) {
-			std::cout << "Creating new block with allocated memory of size: " << BLOCK_SIZE <<  " bytes" << endl;
+            // Creating new block with allocated memory of size: BLOCK_SIZE
 			void* p = ::operator new(BLOCK_SIZE);
 			return p;
 		}
@@ -73,6 +71,7 @@ class Block {
         }
 
 };
+
 
 int main(int argc, char *argv[])
 {
@@ -92,9 +91,8 @@ int main(int argc, char *argv[])
             int numVotes = stoi(row_values[2]);
             Record newRecord = Record(tconst, averageRating, numVotes);
             if (storage.back().getSize() + newRecord.getRecordLength() > BLOCK_SIZE) {
-                Block newBlock;
-                // newBlockPtr = &(newBlock);
-                storage.push_back(newBlock);
+                newBlockPtr = new Block();
+                storage.push_back(*newBlockPtr);
             }
             storage.back().addRecord(newRecord);
             // cout << "Record: " << storage.back().getRecords().back().getTconst() << " added!" << endl;
