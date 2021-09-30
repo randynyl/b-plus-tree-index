@@ -41,6 +41,9 @@ class Record {
         string getTconst() {
             return tconst;
         }
+        int getNumVotes() {
+            return numVotes;
+        }
 };
 
 class Block {
@@ -73,22 +76,71 @@ class Block {
 
 };
 
-class Node {
-    int* keyArr;
-    Node** pointerArr;
-    bool isLeafNode;
 
-    Node() {
-        keyArr = new int[NODE_N];
-        pointerArr = new Node*[NODE_N+1];
-        isLeafNode = true;
-    }
-}
+class Node {
+    public:
+        int* keyArr;
+        Node() {
+            keyArr = new int[NODE_N];
+        }
+};
+
+class LeafNode: public Node {
+    public: 
+        Node* siblingNodePtr;
+        Record** recordPointerArr;
+
+        LeafNode(): Node() {
+            recordPointerArr = new Record*[NODE_N];
+        }
+
+        // void insertIntoLeaf(int value, Record* recordPtr) {}
+        // void split() {}
+
+};
+
+class NonLeafNode: public Node {
+    public:
+        Node** nodePointerArr;
+
+        NonLeafNode(): Node() {
+            nodePointerArr = new Node*[NODE_N+1];
+        }
+
+        // void insertIntoNonLeaf(int value) {}
+        // void split() {}
+};
 
 class BPlusTree {
-    Node* rootNode;
+    public:
+        Node* rootNode;
 
-}
+        BPlusTree() {
+            rootNode = NULL;
+        }
+        
+        void insertIntoTree(int value, Record* recordPtr) {
+            if (rootNode == NULL) {
+                LeafNode* firstNode = new LeafNode();
+                firstNode->keyArr[0] = value;
+                firstNode->recordPointerArr[0] = recordPtr;
+                rootNode = firstNode;
+
+                // need to successfully check that our root node is currently a leafNode.
+                // currently, this prints 0 but it should print 1
+                cout << (typeid(*rootNode) == typeid(LeafNode)) << endl;
+            } else {
+                Node* current = rootNode;
+
+            }
+        }
+        // void deleteFromTree(int value) {}
+        // vector<Record> searchValue(int value) {}
+        // vector<Record> searchRangeOfValues(int lowerBound, int upperBound) {}
+        // Node getParent(Node* nodePtr) {}
+
+};
+
 
 int main(int argc, char *argv[])
 {
@@ -120,7 +172,11 @@ int main(int argc, char *argv[])
 	}
     cout << "Number of blocks: " << storage.size() << endl;
     cout << "Size of database: " << storage.size() * BLOCK_SIZE << endl;
+    cout << "Beginning to build B+ tree on numVotes.." << endl;
+    BPlusTree* bPlusTree = new BPlusTree();
+    Record firstRecord = storage[0].getRecords()[0];
 
+    bPlusTree->insertIntoTree(firstRecord.getNumVotes(), &firstRecord);
 	delete newBlockPtr;
 }
 
