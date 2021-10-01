@@ -487,7 +487,7 @@ class BPlusTree {
   }
     */
 
-    
+    //searchRangeOfValues(int lowerBound, int upperBound) {}
 
         // void deleteFromTree(int value) {}
         // vector<Record> searchValue(int value) {}
@@ -539,18 +539,52 @@ int main(int argc, char *argv[])
             Record recordToIndex = storage[i].getRecords()[j];
             bPlusTree->insertIntoTree(recordToIndex.getNumVotes(), &recordToIndex);
         }
-    }
+    }   
+
+         
+        int options;
+        cout << "Choose a option: "; 
+        cout << "1) Bplus Tree Single Search "; 
+        cout << "2) Bplus Tree Range Search ";
+        cout << "3) Bplus Tree Deletion ";  
+        cin >> options;
+        
+        BPlusTree o;
+        if(options == 1)
+
+        {
+         
         int SV;
         cout << "Type a Search number: "; // Type a number and press enter
         cin >> SV; // Get user input from the keyboard
-        
-        BPlusTree o;
         o.searchValue(SV);
 
-        int DV;
+        }
+        
+        else if (options ==2){
+
+        int lower;
+        int higher;
+        cout << "Type the lower range: "; // Type a number and press enter
+        cin >> lower; // Get user input from the keyboard
+        cout << "Type the higher range: "; // Type a number and press enter
+        cin >> higher; // Get user input from the keyboard
+
+        //o.searchRangeOfValues(lower,hinger);
+
+
+        }
+     
+       
+        else if (options ==3){
+
+         int DV;
         cout << "Type a delete number: "; // Type a number and press enter
         cin >> DV; // Get user input from the keyboard
        // o.deleteFromTree(DV)
+
+        }
+       
 
         
    
