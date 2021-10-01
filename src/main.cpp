@@ -333,7 +333,7 @@ class BPlusTree {
         }
 
         void searchValue(int searchvalue1) {
-        
+    
         
         if (rootNode == NULL) {
             cout << "Tree is empty\n";
@@ -360,8 +360,134 @@ class BPlusTree {
     cout << "Not found\n";
     }
  }
-           
-         \
+
+    /*
+
+    void deleteFromTree(int deletevalue1)
+
+    {
+      if (rootNode == NULL) {
+      cout << "Tree empty\n";
+      } else {
+      Node *current = rootNode;
+      Node *parent;
+      int leftSibling, rightSibling;
+      while (!current->isLeaf) {
+      for (int i = 0; i < current->nodeSize i++) {
+        parent = curent;
+        leftSibling = i - 1;
+        rightSibling = i + 1;
+        if (deletevalue1 < current->keyArr[i]) {
+          curent = current;
+          break;
+        }
+        if (i == current->nodeSize - 1) {
+          leftSibling = i;
+          rightSibling = i + 2;
+          current = current+1;
+          break;
+        }
+      }
+    }
+    bool found = false;
+    int pos;
+    for (pos = 0; pos < current->size; pos++) {
+      if (current->keyArr[pos] == deletevalue1) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      cout << "Not found\n";
+      return;
+    }
+    for (int i = pos; i < current->nodeSize[pos]; i++) {
+      current->nodeSize[i] = current + 1;
+    }
+    current->nodeSize--;
+    if (current == rootNode) {
+      for (int i = 0; i < MAX + 1; i++) {
+        current = NULL;
+      }
+      if (current->nodeSize == 0) {
+        cout << "Tree died\n";
+        delete[] current->keyArr;
+        //delete[] current->ptr[]
+        delete curent;
+        rootNode = NULL;
+      }
+      return;
+    }
+     //current->ptr[current->nodeSize] = current->ptr[current->nodeSize + 1];
+     //current->ptr[current->nodeSize + 1] = NULL;
+    if (current->nodeSize >= (MAX + 1) / 2) {
+      return;
+    }
+    if (leftSibling >= 0) {
+      Node *leftNode = parent->ptr[leftSibling];
+      if (leftNode->size >= (MAX + 1) / 2 + 1) {
+        for (int i = current->nodeSize; i > 0; i--) {
+          current->keyArr[i] = current->keyArr[i - 1];
+        }
+        current->nodeSize++;
+        current->ptr[current->size] = current->ptr[current->size - 1];
+        current->ptr[current->nodeSize - 1] = NULL;
+        current->keyArr[0] = leftNode->key[leftNode->size - 1];
+        leftNode->size--;
+        leftNode->ptr[leftNode->size] = cursor;
+        leftNode->ptr[leftNode->size + 1] = NULL;
+        parent->key[leftSibling] = cursor->key[0];
+        return;
+      }
+    }
+    if (rightSibling <= parent->size) {
+      Node *rightNode = parent->ptr[rightSibling];
+      if (rightNode->size >= (MAX + 1) / 2 + 1) {
+        cursor->size++;
+        cursor->ptr[cursor->size] = cursor->ptr[cursor->size - 1];
+        cursor->ptr[cursor->size - 1] = NULL;
+        cursor->key[cursor->size - 1] = rightNode->key[0];
+        rightNode->size--;
+        rightNode->ptr[rightNode->size] = rightNode->ptr[rightNode->size + 1];
+        rightNode->ptr[rightNode->size + 1] = NULL;
+        for (int i = 0; i < rightNode->size; i++) {
+          rightNode->key[i] = rightNode->key[i + 1];
+        }
+        parent->key[rightSibling - 1] = rightNode->key[0];
+        return;
+      }
+    }
+    if (leftSibling >= 0) {
+      Node *leftNode = parent->ptr[leftSibling];
+      for (int i = leftNode->size, j = 0; j < cursor->size; i++, j++) {
+        leftNode->key[i] = cursor->key[j];
+      }
+      leftNode->ptr[leftNode->size] = NULL;
+      leftNode->size += cursor->size;
+      leftNode->ptr[leftNode->size] = cursor->ptr[cursor->size];
+      removeInternal(parent->key[leftSibling], parent, cursor);
+      delete[] cursor->key;
+      delete[] cursor->ptr;
+      delete cursor;
+    } else if (rightSibling <= parent->size) {
+      Node *rightNode = parent->ptr[rightSibling];
+      for (int i = cursor->size, j = 0; j < rightNode->size; i++, j++) {
+        cursor->key[i] = rightNode->key[j];
+      }
+      cursor->ptr[cursor->size] = NULL;
+      cursor->size += rightNode->size;
+      cursor->ptr[cursor->size] = rightNode->ptr[rightNode->size];
+      cout << "Merging two leaf nodes\n";
+      removeInternal(parent->key[rightSibling - 1], parent, rightNode);
+      delete[] rightNode->key;
+      delete[] rightNode->ptr;
+      delete rightNode;
+       }
+     }
+  }
+    */
+
+    
 
         // void deleteFromTree(int value) {}
         // vector<Record> searchValue(int value) {}
@@ -414,13 +540,18 @@ int main(int argc, char *argv[])
             bPlusTree->insertIntoTree(recordToIndex.getNumVotes(), &recordToIndex);
         }
     }
-        int test;
-        cout << "Type a number: "; // Type a number and press enter
-        cin >> test; // Get user input from the keyboard
+        int SV;
+        cout << "Type a Search number: "; // Type a number and press enter
+        cin >> SV; // Get user input from the keyboard
         
-          
-
         BPlusTree o;
-        o.searchValue(test);
+        o.searchValue(SV);
+
+        int DV;
+        cout << "Type a delete number: "; // Type a number and press enter
+        cin >> DV; // Get user input from the keyboard
+       // o.deleteFromTree(DV)
+
+        
    
 }
