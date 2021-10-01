@@ -9,8 +9,9 @@
 using namespace std;
 
 int BLOCK_SIZE = 100;
-int NODE_N = 12;
+int NODE_N = 4;
 int TCONST_FIXED_LENGTH = 10;
+
 std::vector<std::string> split(const std::string &line, char delimiter) {
     std::stringstream ss;
     ss.str(line);
@@ -198,6 +199,7 @@ class BPlusTree {
                 target->nodeSize++;
             } else {
                 // parent node is full, need to split
+                cout << "Splitting parent node with key: " << key << " and new child node containing numVotes: " << newChildPtr->keyArr[0] << endl;
                 NonLeafNode* newNonLeafNodePtr = new NonLeafNode();
                 int bufferKeyArr[NODE_N+1];
                 Node* bufferNodePtrArr[NODE_N+2];
@@ -267,6 +269,7 @@ class BPlusTree {
                 return;
             } else {
                 // node is full, need to split
+                cout << "Splitting leaf node when adding key: " << value << " that contains numVotes: " << target->keyArr[0] << endl;
                 LeafNode* newLeafNodePtr = new LeafNode();
                 int bufferKeyArr[NODE_N+1];
                 Record* bufferRecordPtrArr[NODE_N+1];
@@ -328,12 +331,13 @@ class BPlusTree {
 
 int main(int argc, char *argv[])
 {
-	cout << "Program begins: " << std::endl;
+	cout << "Program begins: " << endl;
     vector<Block> storage;
     int blockId = 0;
     Block* newBlockPtr = new Block(blockId);
     storage.push_back(*newBlockPtr);
     // begin reading tsv file and storing into blocks
+    cout << "Reading data and storing into blocks.." << endl;
 	ifstream data ("./data.tsv");
 	string line;
 	while (std::getline(data, line)) {
@@ -356,6 +360,7 @@ int main(int argc, char *argv[])
         }
 
 	}
+    cout << "Storage of data complete!" << endl;
     cout << "Number of blocks: " << storage.size() << endl;
     cout << "Size of database: " << storage.size() * BLOCK_SIZE / 1000000 <<  endl;
     delete newBlockPtr;
