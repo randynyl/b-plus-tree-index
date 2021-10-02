@@ -118,14 +118,31 @@ class Node {
         }
 };
 
+class NonLeafNode: public Node {
+    public:
+        Node** nodePointerArr;
+        NonLeafNode* parent;
+
+        NonLeafNode(): Node() {
+            nodePointerArr = new Node*[NODE_N+1];
+            isLeaf = false;
+            parent = NULL;
+        }
+
+        // void insertIntoNonLeaf(int value) {}
+        // void split() {}
+};
+
 class LeafNode: public Node {
     public: 
         Block** blockPointerArr;
         LeafNode* siblingNodePtr;
+        NonLeafNode* parent;
 
         LeafNode(): Node() {
             blockPointerArr = new Block*[NODE_N];
             isLeaf = true;
+            parent = NULL;
         }
 
         // void insertIntoLeaf(int value, Record* newRecordPtr) {}
@@ -133,19 +150,6 @@ class LeafNode: public Node {
             return;
         }
 
-};
-
-class NonLeafNode: public Node {
-    public:
-        Node** nodePointerArr;
-
-        NonLeafNode(): Node() {
-            nodePointerArr = new Node*[NODE_N+1];
-            isLeaf = false;
-        }
-
-        // void insertIntoNonLeaf(int value) {}
-        // void split() {}
 };
 
 class BPlusTree {
@@ -200,6 +204,12 @@ class BPlusTree {
                             parentNode = findParentNode(target, current->nodePointerArr[i], key);
                             break;
                         }
+                        if (key == current->keyArr[i]) {
+                            parentNode = findParentNode(target, current->nodePointerArr[i], key);
+                            if (parentNode != NULL) {
+                                break;
+                            }
+                        }
                         if (i == current->nodeSize-1) {
                             parentNode = findParentNode(target, current->nodePointerArr[current->nodeSize], key);
                             break;
@@ -238,6 +248,7 @@ class BPlusTree {
                 // cout << "Splitting parent node with key: " << key << " and new child node containing numVotes: " << newChildPtr->keyArr[0] << endl;
                 // cout << "original parent node: ";
                 // target->printNode();
+
                 NonLeafNode* newNonLeafNodePtr = new NonLeafNode();
                 int bufferKeyArr[NODE_N+1];
                 Node* bufferNodePtrArr[NODE_N+2];
@@ -268,23 +279,27 @@ class BPlusTree {
                 for (int i=0, j = target->nodeSize + 1; i < newNonLeafNodePtr->nodeSize + 1; i++, j++) {
                     newNonLeafNodePtr->nodePointerArr[i] = bufferNodePtrArr[j]; 
                 }
+
                 // cout << "final nodes: " ;
                 // target->printNode();
                 // newNonLeafNodePtr->printNode();
+
                 int keyToInsert = bufferKeyArr[target->nodeSize];
-                if (target == rootNode) {
+                if (target->parent == NULL) {
                     NonLeafNode* newParent = new NonLeafNode();
                     newParent->keyArr[0] = keyToInsert;
                     newParent->nodePointerArr[0] = target;
                     newParent->nodePointerArr[1] = newNonLeafNodePtr;
                     newParent->nodeSize++;
+                    target->parent = newParent;
+                    newNonLeafNodePtr->parent = newParent;
                     rootNode = newParent;
 
                     // cout << "New parent node: ";
                     // newParent->printNode();
 
                 } else {
-                    insertIntoParentNode(findParentNode(target, rootNode, target->keyArr[0]), keyToInsert, newNonLeafNodePtr);
+                    insertIntoParentNode(target->parent, keyToInsert, newNonLeafNodePtr);
                 }
             }
         }
@@ -316,6 +331,7 @@ class BPlusTree {
                 // cout << "Splitting leaf node when adding key: " << value << " that contains numVotes: " << target->keyArr[0] << endl;
                 // cout << "original leaf node: ";
                 // target->printNode();
+
                 LeafNode* newLeafNodePtr = new LeafNode();
                 int bufferKeyArr[NODE_N+1];
                 Block* bufferBlockPtrArr[NODE_N+1];
@@ -353,12 +369,14 @@ class BPlusTree {
                 // target->printNode();
                 // newLeafNodePtr->printNode();
 
-                if (target == rootNode) {
+                if (target->parent == NULL) {
                     parent = new NonLeafNode();
                     parent->keyArr[0] = newLeafNodePtr->keyArr[0];
                     parent->nodePointerArr[0] = target;
                     parent->nodePointerArr[1] = newLeafNodePtr;
                     parent->nodeSize++;
+                    target->parent = parent;
+                    newLeafNodePtr->parent = parent;
                     rootNode = parent;
                 } else {
                     insertIntoParentNode(parent, newLeafNodePtr->keyArr[0], newLeafNodePtr);
@@ -389,6 +407,10 @@ class BPlusTree {
                     for (int i=0; i<parent->nodeSize; i++) {
                         if (value < parent->keyArr[i]) {
                             current = parent->nodePointerArr[i];
+                            break;
+                        }
+                        if (value == parent->keyArr[i]) {
+                            current = parent->nodePointerArr[i+1];
                             break;
                         }
                         if (i == current->nodeSize-1) {
@@ -425,17 +447,19 @@ class BPlusTree {
                 // printing accessed nodes
                 cout << "Number of index nodes accessed: " << accessedNodes.size() << endl;
                 cout << "Content of up to first 5 index nodes: " << endl;
-                for (int i=0; i<5; i++) {
-                    cout << i+1 << ": ";
-                    accessedNodes[i]->printNode();
+                int counter = 0;
+                while (counter < accessedNodes.size() && counter < 5) {
+                    cout << counter+1 << ": ";
+                    accessedNodes[counter]->printNode();
                     cout << "\n";
+                    counter++;
                 }
 
                 // printing accessed blocks
                 cout << "Number of data blocks accessed: " << accessedBlocks.size() << endl;
                 cout << "Content of up to first 5 data blocks: " << endl;
                 set<Block*>::iterator it2 = accessedBlocks.begin();
-                int counter = 0;
+                counter = 0;
                 while (it2 != accessedBlocks.end() && counter < 5) {
                     cout << counter+1 << ": ";
                     (*it2)->printContent();
@@ -447,9 +471,12 @@ class BPlusTree {
                 float sumOfAverageRatings = 0;
                 int recordCount = 0;
                 while (it2 != accessedBlocks.end()) {
+
                     for (int i=0; i<(*it2)->getRecords().size(); i++) {
+                        cout << (*it2)->getRecords()[i].getNumVotes() << endl;
                         if ((*it2)->getRecords()[i].getNumVotes() == value) {
                             sumOfAverageRatings += (*it2)->getRecords()[i].getAverageRating();
+                            cout << sumOfAverageRatings << endl;
                             recordCount++;
                         }
                     }
@@ -502,7 +529,10 @@ int main(int argc, char *argv[])
         Block blockToIndex = storage[i];
         for (int j=0; j<blockToIndex.getRecords().size(); j++) {
             Record recordToIndex = storage[i].getRecords()[j];
-            cout << "inserting block id: " << blockToIndex.getBlockId() << " with index on numVotes: " << recordToIndex.getNumVotes() << " from record: " << recordToIndex.getTconst() << endl;
+            // cout << "inserting block id: " << blockToIndex.getBlockId() << " with index on numVotes: " << recordToIndex.getNumVotes() << " from record: " << recordToIndex.getTconst() << endl;
+            if (recordToIndex.getNumVotes() > 6000000) {
+                cout << recordToIndex.getTconst() << " CHECK " << recordToIndex.getNumVotes() << endl;
+            } 
             bPlusTree->insertIntoTree(recordToIndex.getNumVotes(), &blockToIndex);
         }
     }
