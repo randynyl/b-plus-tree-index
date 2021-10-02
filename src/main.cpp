@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <set>
 #include <iterator>
 #include <sstream>
 #include <typeinfo>
@@ -9,7 +10,7 @@
 using namespace std;
 
 int BLOCK_SIZE = 100;
-int NODE_N = 4;
+int NODE_N = 11;
 int TCONST_FIXED_LENGTH = 10;
 
 std::vector<std::string> split(const std::string &line, char delimiter) {
@@ -47,6 +48,9 @@ class Record {
         int getNumVotes() {
             return numVotes;
         }
+        float getAverageRating() {
+            return averageRating;
+        }
 };
 
 class Block {
@@ -79,6 +83,19 @@ class Block {
             return records;
         }
 
+        int getBlockId() {
+            return blockId;
+        }
+
+        void printContent() {
+            cout << "Accessed block id: " << getBlockId() << ": ";
+            for (int i=0; i<getRecords().size(); i++) {
+                cout << getRecords()[i].getTconst() << " ";
+            }
+            cout << "\n";
+        }
+
+
 };
 
 
@@ -87,13 +104,6 @@ class Node {
         int* keyArr;
         bool isLeaf;
         int nodeSize;
-
-        // attributes used by LeafNode
-        // vector<Record*> recordPointerArr;
-        // Node* siblingNodePtr;
-
-        // attribute used my NonLeafNode
-        // vector<Node*> nodePointerArr;
 
         Node() {
             keyArr = new int[NODE_N];
@@ -110,11 +120,11 @@ class Node {
 
 class LeafNode: public Node {
     public: 
-        Record** recordPointerArr;
-        Node* siblingNodePtr;
+        Block** blockPointerArr;
+        LeafNode* siblingNodePtr;
 
         LeafNode(): Node() {
-            recordPointerArr = new Record*[NODE_N];
+            blockPointerArr = new Block*[NODE_N];
             isLeaf = true;
         }
 
@@ -175,12 +185,11 @@ class BPlusTree {
         }
 
         NonLeafNode* findParentNode(Node* target, Node* currentNode, int key) {
-            NonLeafNode* parentNode;
+            NonLeafNode* parentNode = NULL;
             if (currentNode->isLeaf) {
                 return NULL;
             }
             NonLeafNode* current = static_cast<NonLeafNode*>(currentNode);
-            // Recursive depth first search for child
             for (int i=0; i<current->nodeSize+1; i++) {
                 if (current->nodePointerArr[i] == target) {
                     parentNode = current;
@@ -193,12 +202,16 @@ class BPlusTree {
                         }
                         if (i == current->nodeSize-1) {
                             parentNode = findParentNode(target, current->nodePointerArr[current->nodeSize], key);
+                            break;
                         }
                     }
                     if (parentNode != NULL) {
                         return parentNode;
                     }
                 }
+            }
+            if (parentNode == NULL) {
+                cout << "returning NULL parent node." << endl;
             }
             return parentNode;
         }
@@ -277,10 +290,10 @@ class BPlusTree {
         }
 
 
-        void insertIntoLeafNode(LeafNode* target, NonLeafNode* parent, int value, Record* newRecordPtr) {
+        void insertIntoLeafNode(LeafNode* target, NonLeafNode* parent, int value, Block* newBlockPtr) {
             if (target->nodeSize == 0) {
                 target->keyArr[0] = value;
-                target->recordPointerArr[0] = newRecordPtr;
+                target->blockPointerArr[0] = newBlockPtr;
                 target->nodeSize++;
                 return;
             } else if (target->nodeSize < NODE_N) {
@@ -292,10 +305,10 @@ class BPlusTree {
                 // shifting larger keys and pointers right
                 for (int j=target->nodeSize; j>i; j--) {
                     target->keyArr[j] = target->keyArr[j-1];
-                    target->recordPointerArr[j] = target->recordPointerArr[j-1];
+                    target->blockPointerArr[j] = target->blockPointerArr[j-1];
                 }
                 target->keyArr[i] = value;
-                target->recordPointerArr[i] = newRecordPtr;
+                target->blockPointerArr[i] = newBlockPtr;
                 target->nodeSize++;
                 return;
             } else {
@@ -305,10 +318,10 @@ class BPlusTree {
                 // target->printNode();
                 LeafNode* newLeafNodePtr = new LeafNode();
                 int bufferKeyArr[NODE_N+1];
-                Record* bufferRecordPtrArr[NODE_N+1];
+                Block* bufferBlockPtrArr[NODE_N+1];
                 for (int i = 0; i < NODE_N; i++) {
                     bufferKeyArr[i] = target->keyArr[i];
-                    bufferRecordPtrArr[i] = target->recordPointerArr[i];
+                    bufferBlockPtrArr[i] = target->blockPointerArr[i];
                 }
                 int i = 0;
                 while (bufferKeyArr[i] < value && i < NODE_N) {
@@ -316,10 +329,10 @@ class BPlusTree {
                 }
                 for (int j = NODE_N+1; j>i; j--) {
                     bufferKeyArr[j] = bufferKeyArr[j-1];
-                    bufferRecordPtrArr[j] = bufferRecordPtrArr[j-1];
+                    bufferBlockPtrArr[j] = bufferBlockPtrArr[j-1];
                 }
                 bufferKeyArr[i] = value;
-                bufferRecordPtrArr[i] = newRecordPtr;
+                bufferBlockPtrArr[i] = newBlockPtr;
                 // new leaf node size = floor((n+1)/2)
                 newLeafNodePtr->nodeSize = (NODE_N + 1)/2;
                 // original leaf node size = ceiling((n+1)/2)
@@ -329,11 +342,11 @@ class BPlusTree {
                 target->siblingNodePtr = newLeafNodePtr;
                 for (int i=0; i < target->nodeSize; i++) {
                     target->keyArr[i] = bufferKeyArr[i];
-                    target->recordPointerArr[i] = bufferRecordPtrArr[i];
+                    target->blockPointerArr[i] = bufferBlockPtrArr[i];
                 }
                 for (int i=0, j = target->nodeSize; i < newLeafNodePtr->nodeSize; i++, j++) {
                     newLeafNodePtr->keyArr[i] = bufferKeyArr[j];
-                    newLeafNodePtr->recordPointerArr[i] = bufferRecordPtrArr[j];
+                    newLeafNodePtr->blockPointerArr[i] = bufferBlockPtrArr[j];
                 }
 
                 // cout << "final leaf nodes: ";
@@ -353,17 +366,98 @@ class BPlusTree {
             }
         }
         
-        void insertIntoTree(int value, Record* newRecordPtr) {
-            cout << "inserting id: " << newRecordPtr->getTconst() << " with index on numVotes: " << value << endl;
+        void insertIntoTree(int value, Block* newBlockPtr) {
             pair<LeafNode*, NonLeafNode*> targetLeafParentPair = locateTargetLeafNode(value);
             LeafNode* targetLeafNode = targetLeafParentPair.first;
             NonLeafNode* parentOfTarget = targetLeafParentPair.second;
-            insertIntoLeafNode(targetLeafNode, parentOfTarget, value, newRecordPtr);
+            insertIntoLeafNode(targetLeafNode, parentOfTarget, value, newBlockPtr);
         }
-        // void deleteFromTree(int value) {}
-        // vector<Record> searchValue(int value) {}
-        // vector<Record> searchRangeOfValues(int lowerBound, int upperBound) {}
-        // Node getParent(Node* nodePtr) {}
+
+        void searchValue(int value) {  
+            LeafNode* target;
+            NonLeafNode* parent;
+            vector<Node*> accessedNodes;
+            set<Block*> accessedBlocks;
+            if (rootNode == NULL) {
+                cout << "target key " << value << " not found." << endl;
+                return;
+            } else {
+                Node* current = rootNode;
+                while (!current->isLeaf) {
+                    parent = static_cast<NonLeafNode*>(current);
+                    accessedNodes.push_back(parent);
+                    for (int i=0; i<parent->nodeSize; i++) {
+                        if (value < parent->keyArr[i]) {
+                            current = parent->nodePointerArr[i];
+                            break;
+                        }
+                        if (i == current->nodeSize-1) {
+                            // value is greater or equal to largest key in node, so we follow the last pointer
+                            current = parent->nodePointerArr[parent->nodeSize];
+                        }                        
+                    }    
+                }
+                // current node is a leaf node
+                target = static_cast<LeafNode*>(current);
+                accessedNodes.push_back(target);
+                for (int i = 0; i < target->nodeSize; i++) {
+                    if (target->keyArr[i] == value) {
+                        cout << "target key " <<  value << " found! adding block: " << target->blockPointerArr[i]->getBlockId() << " to list of accessed blocks." << endl;
+                        accessedBlocks.insert(target->blockPointerArr[i]);
+                        // searching subsequent keys to see if they match the search value
+                        do {
+                            if (i == target->nodeSize-1) {
+                                target = target->siblingNodePtr;
+                                accessedNodes.push_back(target);
+                                i = 0;
+                            } else {
+                                i++;
+                                if (target->keyArr[i] == value) {
+                                    cout << "target key " <<  value << " found! adding block: " << target->blockPointerArr[i]->getBlockId() << " to list of accessed blocks." << endl;
+                                    accessedBlocks.insert(target->blockPointerArr[i]);
+                                }
+                            }
+                        } while (target->keyArr[i] == value);
+                        break;
+                    }
+                }
+
+                // printing accessed nodes
+                cout << "Number of index nodes accessed: " << accessedNodes.size() << endl;
+                cout << "Content of up to first 5 index nodes: " << endl;
+                for (int i=0; i<5; i++) {
+                    cout << i+1 << ": ";
+                    accessedNodes[i]->printNode();
+                    cout << "\n";
+                }
+
+                // printing accessed blocks
+                cout << "Number of data blocks accessed: " << accessedBlocks.size() << endl;
+                cout << "Content of up to first 5 data blocks: " << endl;
+                set<Block*>::iterator it2 = accessedBlocks.begin();
+                int counter = 0;
+                while (it2 != accessedBlocks.end() && counter < 5) {
+                    cout << counter+1 << ": ";
+                    (*it2)->printContent();
+                    it2++;
+                    counter++;
+                }
+
+                // getting average of average ratings from records retrieved
+                float sumOfAverageRatings = 0;
+                int recordCount = 0;
+                while (it2 != accessedBlocks.end()) {
+                    for (int i=0; i<(*it2)->getRecords().size(); i++) {
+                        if ((*it2)->getRecords()[i].getNumVotes() == value) {
+                            sumOfAverageRatings += (*it2)->getRecords()[i].getAverageRating();
+                            recordCount++;
+                        }
+                    }
+                }
+                float averageOfAverageRatings = sumOfAverageRatings/recordCount;
+                cout << "Average of averageRatings for movies with numVotes: " << value << " is " << averageOfAverageRatings;
+            }     
+        }
 
 };
 
@@ -394,7 +488,6 @@ int main(int argc, char *argv[])
                 storage.push_back(*newBlockPtr);
             }
             storage.back().addRecord(newRecord);
-            // cout << "Record: " << storage.back().getRecords().back().getTconst() << " added!" << endl;
         } catch (...) {
             continue;
         }
@@ -403,17 +496,23 @@ int main(int argc, char *argv[])
     cout << "Storage of data complete!" << endl;
     cout << "Number of blocks: " << storage.size() << endl;
     cout << "Size of database: " << storage.size() * BLOCK_SIZE / 1000000 <<  endl;
-    delete newBlockPtr;
     cout << "Beginning to build B+ tree on numVotes.." << endl;
     BPlusTree* bPlusTree = new BPlusTree();
     for (int i=0; i<storage.size(); i++) {
-        for (int j=0; j<storage[i].getRecords().size(); j++) {
+        Block blockToIndex = storage[i];
+        for (int j=0; j<blockToIndex.getRecords().size(); j++) {
             Record recordToIndex = storage[i].getRecords()[j];
-            bPlusTree->insertIntoTree(recordToIndex.getNumVotes(), &recordToIndex);
+            cout << "inserting block id: " << blockToIndex.getBlockId() << " with index on numVotes: " << recordToIndex.getNumVotes() << " from record: " << recordToIndex.getTconst() << endl;
+            bPlusTree->insertIntoTree(recordToIndex.getNumVotes(), &blockToIndex);
         }
     }
+    int searchValue = 500;
+    bPlusTree->searchValue(searchValue);
 
+
+    delete newBlockPtr;
 }
+
 
 
 
