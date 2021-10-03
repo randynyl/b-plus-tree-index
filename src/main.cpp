@@ -216,9 +216,6 @@ class BPlusTree {
         void insertIntoParentNode(NonLeafNode* target, int key, Node* newChildPtr) {
             if (target->nodeSize < NODE_N) {
 
-                // cout << "Inserting key: " << key << " into original parent node: ";
-                // target->printNode();
-
                 int i = 0;
                 // finding index to insert new key
                 while (target->keyArr[i] < key && i < target->nodeSize) {
@@ -232,18 +229,13 @@ class BPlusTree {
                 target->nodePointerArr[i+1] = newChildPtr;
                 target->nodeSize++;
 
-                // cout << "New parent node: ";
-                // target->printNode();
             } else {
                 // parent node is full, need to split
-                // cout << "Splitting parent node with key: " << key << " and new child node containing numVotes: " << newChildPtr->keyArr[0] << endl;
-                // cout << "original parent node: ";
-                // target->printNode();
-
                 NonLeafNode* newNonLeafNodePtr = new NonLeafNode();
                 numNodes++;
                 int bufferKeyArr[NODE_N+1];
                 Node* bufferNodePtrArr[NODE_N+2];
+
                 // add keys and pointer to a buffer in sequence
                 for (int i=0; i<target->nodeSize; i++) {
                     bufferKeyArr[i] = target->keyArr[i];
@@ -265,11 +257,6 @@ class BPlusTree {
                 bufferKeyArr[i] = key;
                 bufferNodePtrArr[i+1] = newChildPtr;
                 
-                // cout << "Buffer keys: ";
-                // for (i=0; i<sizeof(bufferKeyArr); i++) {
-                //     cout << bufferKeyArr[i] << " ";
-                // }
-                // cout << "\n";
 
                 // new node contains at least floor(n/2) keys
                 newNonLeafNodePtr->nodeSize = NODE_N/2;
@@ -288,9 +275,6 @@ class BPlusTree {
                 }
                 newNonLeafNodePtr->parent = target->parent;
 
-                // cout << "final nodes: " ;
-                // target->printNode();
-                // newNonLeafNodePtr->printNode();
 
                 int keyToInsert = bufferKeyArr[target->nodeSize];
                 if (target->parent == NULL) {
@@ -305,11 +289,7 @@ class BPlusTree {
                     height++;
                     numNodes++;
 
-                    // cout << "New parent node: ";
-                    // newParent->printNode();
-
                 } else {
-                    // cout << "Inserting into parent's parent: ";
                     insertIntoParentNode(target->parent, keyToInsert, newNonLeafNodePtr);
 
                 }
@@ -354,9 +334,6 @@ class BPlusTree {
                     
                 } else {
                     // node is full, need to split
-                    // cout << "Splitting leaf node when adding key: " << value << endl;
-                    // cout << "original leaf node: ";
-                    // target->printNode();
 
                     LeafNode* newLeafNodePtr = new LeafNode();
                     numNodes++;
@@ -396,10 +373,6 @@ class BPlusTree {
                         newLeafNodePtr->blockPointerArr[i] = bufferBlockPtrArr[j];
                     }
 
-                    // cout << "final leaf nodes: ";
-                    // target->printNode();
-                    // newLeafNodePtr->printNode();
-
                     if (target->parent == NULL) {
                         parent = new NonLeafNode();
                         parent->keyArr[0] = newLeafNodePtr->keyArr[0];
@@ -411,9 +384,6 @@ class BPlusTree {
                         rootNode = parent;
                         numNodes++;
                         height++;
-
-                        // cout << "New parent created: ";
-                        // parent->printNode();
                     } else {
                         insertIntoParentNode(parent, newLeafNodePtr->keyArr[0], newLeafNodePtr);
                     }
@@ -463,23 +433,8 @@ class BPlusTree {
                 accessedNodes.push_back(target);
                 for (int i = 0; i < target->nodeSize; i++) {
                     if (target->keyArr[i] == value) {
-                        // cout << "target key " <<  value << " found! adding block: " << target->blockPointerArr[i]->getBlockId() << " to list of accessed blocks." << endl;
                         accessedBlocks = target->blockPointerArr[i];
                         found = true;
-                        // searching subsequent keys to see if they match the search value
-                        // do {
-                        //     if (i == target->nodeSize-1) {
-                        //         target = target->siblingNodePtr;
-                        //         accessedNodes.push_back(target);
-                        //         i = 0;
-                        //     } else {
-                        //         i++;
-                        //         if (target->keyArr[i] == value) {
-                        //             cout << "target key " <<  value << " found! adding block: " << target->blockPointerArr[i]->getBlockId() << " to list of accessed blocks." << endl;
-                        //             accessedBlocks.push_back(target->blockPointerArr[i]);
-                        //         }
-                        //     }
-                        // } while (target->keyArr[i] == value);
                         break;
                     }
                 }
@@ -512,7 +467,6 @@ class BPlusTree {
                         }
                     }
 
-
                     // getting average of average ratings from records retrieved
                     float sumOfAverageRatings = 0;
                     int recordCount = 0;
@@ -538,7 +492,7 @@ class BPlusTree {
             vector<Block*> accessedBlocks;
             bool found = false;
             if (rootNode == NULL) {
-                cout << "target key " << lowerBound << " not found." << endl;
+                cout << "target keys not found." << endl;
                 return;
             } else {
                 Node* current = rootNode;
@@ -563,10 +517,8 @@ class BPlusTree {
                 // current node is a leaf node
                 target = static_cast<LeafNode*>(current);
                 accessedNodes.push_back(target);
-                target->printNode();
                 for (int i = 0; i < target->nodeSize; i++) {
                     if (target->keyArr[i] >= lowerBound && target->keyArr[i] <= upperBound) {
-                        // cout << "target key " <<  value << " found! adding block: " << target->blockPointerArr[i]->getBlockId() << " to list of accessed blocks." << endl;
                         accessedBlocks.insert(accessedBlocks.end(), target->blockPointerArr[i].begin(), target->blockPointerArr[i].end());
                         found = true;
                     }
@@ -638,6 +590,7 @@ class BPlusTree {
 int main(int argc, char *argv[])
 {
 	cout << "Program begins: " << endl;
+
     vector<Block> storage;
     int blockId = 0;
     Block* newBlockPtr = new Block(blockId);
