@@ -584,6 +584,234 @@ class BPlusTree {
                 }      
             }     
         }
+
+        void updateParentOfLeafNodeAfterDeletion(NonLeafNode* parent, Node* child) {
+            for (int i=0; i < parent->nodeSize; i++) {
+                    if (parent->nodePointerArr[i] == child && i>0) {
+                        parent->keyArr[i-1] = child->keyArr[0];
+                    }
+                }
+        }
+
+        int removeKeyFromTree(int value) {
+            cout << "Searching for value: " << value << " within tree.." << endl;
+            int numTreeNodesAtStart = numNodes;
+            int nodesDeletedCount;
+            bool keyFound = false;
+            if (rootNode == NULL) {
+                cout << "Tree is empty!" << endl;
+            }
+            pair<LeafNode*, NonLeafNode*> targetLeafParentPair = locateTargetLeafNode(value);
+            LeafNode* targetLeafNode = targetLeafParentPair.first;
+            NonLeafNode* parentOfTarget = targetLeafParentPair.second;
+
+            for (int i=0; i<targetLeafNode->nodeSize; i++) {
+                if (value == targetLeafNode->keyArr[i]) {
+                    cout << "Value: " << value << " found within tree! Proceeding to delete." << endl;
+                    for (int j=i; j<targetLeafNode->nodeSize-1; j++) {
+                        targetLeafNode->keyArr[j] = targetLeafNode->keyArr[j+1];
+                        targetLeafNode->blockPointerArr[j] = targetLeafNode->blockPointerArr[j+1];
+                    }
+                    targetLeafNode->blockPointerArr[NODE_N-1].clear();
+                    targetLeafNode->nodeSize--;
+                    keyFound = true;
+                }
+            }
+            if (!keyFound) {
+                cout << "Key " << value << " not found.";
+            } else if (targetLeafNode == rootNode) {
+                cout << "Key successfully deleted." << endl;
+            } else if (targetLeafNode->nodeSize >= (NODE_N+1)/2) {
+                // no need to merge, update parent's key if applicable
+                updateParentOfLeafNodeAfterDeletion(parentOfTarget, targetLeafNode);
+                cout << "Key successfully deleted." << endl;
+            } else {
+                // taking keys from sibling or merging required
+                int indexLeftSibling, indexRightSibling;
+                for (int i=0; i < parentOfTarget->nodeSize; i++) {
+                    if (parentOfTarget->nodePointerArr[i] == targetLeafNode) {
+                        indexLeftSibling = i-1;
+                        indexRightSibling = i+1;
+                    }
+                }
+                // check to see if we can take a key from left sibling
+                if (indexLeftSibling >= 0 && parentOfTarget->nodePointerArr[indexLeftSibling]->nodeSize >= (NODE_N+1)/2+1) {
+                    LeafNode* leftSibling = static_cast<LeafNode*>(parentOfTarget->nodePointerArr[indexLeftSibling]);
+                    for (int i=targetLeafNode->nodeSize; i>0; i--) {
+                        targetLeafNode->keyArr[i] = targetLeafNode->keyArr[i-1];
+                        targetLeafNode->blockPointerArr[i] = targetLeafNode->blockPointerArr[i-1];
+                    }
+                    targetLeafNode->keyArr[0] = leftSibling->keyArr[leftSibling->nodeSize-1];
+                    targetLeafNode->blockPointerArr[0] = leftSibling->blockPointerArr[leftSibling->nodeSize-1];
+                    
+                    targetLeafNode->nodeSize++;
+                    leftSibling->nodeSize--;
+                    updateParentOfLeafNodeAfterDeletion(parentOfTarget, targetLeafNode);
+                    updateParentOfLeafNodeAfterDeletion(parentOfTarget, leftSibling);
+                    cout << "Key successfully deleted." << endl;
+
+                // check to see if we can take a key from right sibling
+                } else if (indexRightSibling <= parentOfTarget->nodeSize && parentOfTarget->nodePointerArr[indexRightSibling]->nodeSize >= (NODE_N+1)/2+1) {
+                    LeafNode* rightSibling = static_cast<LeafNode*>(parentOfTarget->nodePointerArr[indexRightSibling]);
+                    targetLeafNode->keyArr[targetLeafNode->nodeSize] = rightSibling->keyArr[0];
+                    targetLeafNode->blockPointerArr[targetLeafNode->nodeSize] = rightSibling->blockPointerArr[0];
+
+                    for (int i=0; i<rightSibling->nodeSize-1; i++) {
+                        rightSibling->keyArr[i] = rightSibling->keyArr[i+1];
+                        rightSibling->blockPointerArr[i] = rightSibling->blockPointerArr[i+1];
+                    }
+                    targetLeafNode->nodeSize++;
+                    rightSibling->nodeSize--;
+                    updateParentOfLeafNodeAfterDeletion(parentOfTarget, targetLeafNode);
+                    updateParentOfLeafNodeAfterDeletion(parentOfTarget, rightSibling);
+                    cout << "Key successfully deleted." << endl;
+                } else {
+                    // have to merge with either right or left sibling
+                    if (indexRightSibling <= parentOfTarget->nodeSize) {
+                        LeafNode* rightSibling = static_cast<LeafNode*>(parentOfTarget->nodePointerArr[indexRightSibling]);
+                        for (int i=targetLeafNode->nodeSize, j=0; j<rightSibling->nodeSize; i++, j++) {
+                            targetLeafNode->keyArr[i] = rightSibling->keyArr[j];
+                            targetLeafNode->blockPointerArr[i] = rightSibling->blockPointerArr[j];
+                        }
+                        targetLeafNode->siblingNodePtr = rightSibling->siblingNodePtr;
+                        targetLeafNode->nodeSize += rightSibling->nodeSize;
+                        // remove pointer in parent
+
+                        delete rightSibling;
+                        numNodes--;
+                    } else if (indexLeftSibling > 0) {
+                        LeafNode* leftSibling = static_cast<LeafNode*>(parentOfTarget->nodePointerArr[indexLeftSibling]);
+                        for (int i=leftSibling->nodeSize, j=0; j<targetLeafNode->nodeSize; i++, j++) {
+                            leftSibling->keyArr[i] = targetLeafNode->keyArr[i];
+                            leftSibling->blockPointerArr[i] = targetLeafNode->blockPointerArr[i];
+                        }
+                        leftSibling->siblingNodePtr = targetLeafNode->siblingNodePtr;
+                        leftSibling->nodeSize += targetLeafNode->nodeSize;
+                        // remove pointer in parent
+
+                        delete targetLeafNode;
+                        numNodes--;
+                    }
+                    cout << "Key successfully deleted." << endl;
+                    return nodesDeletedCount;
+                }
+            }
+            nodesDeletedCount = numTreeNodesAtStart - numNodes;
+            return nodesDeletedCount;
+        }
+        void removeFromParent(NonLeafNode* parent, Node* childToDelete) {
+            if (parent == NULL) {
+                return;
+            }
+            if (parent == rootNode) {
+                if (parent->nodeSize == 1) {
+                    // change root to child not being deleted
+                    if (parent->nodePointerArr[0] == childToDelete) {
+                        rootNode = parent->nodePointerArr[1];
+                    }
+                    else if (parent->nodePointerArr[1] == childToDelete) {
+                        rootNode = parent->nodePointerArr[0];
+                    }
+                    numNodes--;
+                    height--;
+                    delete parent;
+                    return;
+                }
+            }
+            // delete key pointer pair from parent
+            int i = 0;
+            while(parent->nodePointerArr[i] != childToDelete) {
+                i++;
+            }
+            // i is the index of child pointer to delete
+            for (int j=i; j<parent->nodeSize; j++) {
+                parent->nodePointerArr[j] = parent->nodePointerArr[j+1];
+                parent->keyArr[j-1] = parent->keyArr[j];
+            }
+            parent->nodeSize--;
+            if (parent == rootNode || parent->nodeSize >= NODE_N/2) {
+                return;
+            }
+
+            NonLeafNode* parentOfParent = parent->parent;
+            int indexLeftSibling, indexRightSibling;
+            for (int i=0; i<parentOfParent->nodeSize+1; i++) {
+                if (parentOfParent->nodePointerArr[i] == parent) {
+                    indexLeftSibling = i-1;
+                    indexRightSibling = i+1;
+                    break;
+                }
+            }
+            // since non leaf nodes need at least floor(n/2) keys, we check is siblings have at least (n/2)+1 keys
+            if (indexLeftSibling >= 0 && parentOfParent->nodePointerArr[indexLeftSibling]->nodeSize >= (NODE_N)/2 + 1) {
+                NonLeafNode* leftSibling = static_cast<NonLeafNode*>(parentOfParent->nodePointerArr[indexLeftSibling]);
+                for (int i=parent->nodeSize; i>0; i--) {
+                    parent->keyArr[i] = parent->keyArr[i-1];
+                }
+                // each key value at i should be the smallest key in the (i+1) subtree
+                parent->keyArr[0] = parentOfParent->keyArr[indexLeftSibling];
+                parentOfParent->keyArr[indexLeftSibling] = leftSibling->keyArr[leftSibling->nodeSize-1];
+                
+                for (int i=parent->nodeSize+1; i>0; i--) {
+                    parent->nodePointerArr[i] = parent->nodePointerArr[i-1];
+                }
+                parent->nodePointerArr[0] = leftSibling->nodePointerArr[leftSibling->nodeSize];
+
+                parent->nodeSize++;
+                leftSibling->nodeSize--;
+
+            } else if (indexRightSibling <= parentOfParent->nodeSize && parentOfParent->nodePointerArr[indexRightSibling]->nodeSize >= (NODE_N)/2 + 1) {
+                NonLeafNode* rightSibling = static_cast<NonLeafNode*>(parentOfParent->nodePointerArr[indexRightSibling]);
+                parent->keyArr[parent->nodeSize] = parentOfParent->keyArr[indexRightSibling-1];
+                parentOfParent->keyArr[indexRightSibling-1] = rightSibling->keyArr[0];
+                parent->nodePointerArr[parent->nodeSize+1] = rightSibling->nodePointerArr[0];
+
+                for (int i=0; i < rightSibling->nodeSize-1; i++) {
+                    rightSibling->keyArr[i] = rightSibling->keyArr[i+1];
+                }
+                for (int i=0; i < rightSibling->nodeSize; i++) {
+                    rightSibling->nodePointerArr[i] = rightSibling->nodePointerArr[i+1];
+                }
+
+                parent->nodeSize++;
+                rightSibling->nodeSize--;
+            } else {
+                // merge nodes
+                if (indexRightSibling <= parentOfParent->nodeSize) {       
+                    NonLeafNode* rightSibling = static_cast<NonLeafNode*>(parentOfParent->nodePointerArr[indexRightSibling]);
+                    parent->keyArr[parent->nodeSize] = parentOfParent->keyArr[indexRightSibling-1];
+                    for (int i = parent->nodeSize+1, j=0; j < rightSibling->nodeSize; i++, j++) {
+                        parent->keyArr[i] = rightSibling->keyArr[i];
+                    }
+                    for (int i = parent->nodeSize+1, j=0; j < rightSibling->nodeSize+1; i++, j++) {
+                        parent->nodePointerArr[i] = rightSibling->nodePointerArr[j];
+                    }
+
+                    parent->nodeSize += rightSibling->nodeSize + 1;
+                    removeFromParent(parentOfParent, rightSibling);
+                    numNodes--;
+                    delete rightSibling;
+
+                } else if (indexLeftSibling >= 0) {
+                    NonLeafNode* leftSibling = static_cast<NonLeafNode*>(parentOfParent->nodePointerArr[indexLeftSibling]);
+                    leftSibling->keyArr[leftSibling->nodeSize] = parentOfParent->keyArr[indexLeftSibling];
+                    for (int i = leftSibling->nodeSize+1, j=0; j < parent->nodeSize; i++, j++) {
+                        leftSibling->keyArr[i] = parent->keyArr[j];
+                    }                
+                    for (int i = leftSibling->nodeSize+1, j=0; j < parent->nodeSize+1; i++, j++) {
+                        leftSibling->nodePointerArr[i] = parent->nodePointerArr[j];
+                    }
+
+                    leftSibling->nodeSize += parent->nodeSize + 1;
+                    removeFromParent(parentOfParent, parent);
+                    numNodes--;
+                    delete parent;
+                }
+                
+            }
+
+        
+        }
 };
 
 
@@ -597,8 +825,7 @@ int main(int argc, char *argv[])
     storage.push_back(*newBlockPtr);
     // begin reading tsv file and storing into blocks
     cout << "Reading data and storing into blocks.." << endl;
-	// ifstream data ("../data.tsv");
-    ifstream data("C:\\Users\\Randy\\Desktop\\CZ4031 DBSP\\Project 1\\code\\src\\data.tsv");
+	ifstream data ("./data.tsv");
 	string line;
 	while (std::getline(data, line)) {
 		vector<string> row_values;
@@ -644,6 +871,15 @@ int main(int argc, char *argv[])
     bPlusTree->searchValue(500);
     cout << "\n--EXPERIMENT 4--" << endl;
     bPlusTree->searchValueRangeInclusive(30000, 40000);
+    cout << "\n--EXPERIMENT 5--" << endl;
+    int numNodesDeleted = bPlusTree->removeKeyFromTree(1000);
+    cout << "Number of times a node was deleted: " << numNodesDeleted << endl;
+    cout << "Number of nodes in updated B+ tree: " << bPlusTree->getNumNodes() << endl;
+    cout << "Height of updated B+ tree: " << bPlusTree->getHeight() << endl;
+    cout << "Updated "; 
+    bPlusTree->printRootNode();
+    cout << "Updated ";
+    bPlusTree->printRootFirstChild();
 
     delete newBlockPtr;
 }
